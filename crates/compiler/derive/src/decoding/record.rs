@@ -35,7 +35,7 @@ use super::wrap_in_decode_custom_decode_with;
 ///     stepField = \state, field ->
 ///         when field is
 ///             "first" ->
-///                 Keep (Decode.custom \bytes, fmt ->
+///                 Keep (Decode.cust"om \bytes, fmt ->
 ///                     when Decode.decodeWith bytes Decode.decoder fmt is
 ///                         {result, rest} ->
 ///                             {result: Result.map result \val -> {state & f0: Ok val}, rest})

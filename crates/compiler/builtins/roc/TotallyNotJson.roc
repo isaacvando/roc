@@ -85,6 +85,7 @@ Json := { fieldNameMapping : FieldNameMapping }
             list: decodeList,
             record: decodeRecord,
             tuple: decodeTuple,
+            discriminant: discriminant,
         },
     ]
 
@@ -738,6 +739,30 @@ tryDecode = \{ result, rest }, mapper ->
     when result is
         Ok val -> mapper { val, rest }
         Err e -> { result: Err e, rest }
+
+discriminant = \options -> Decode.custom \bytes, @Json {} ->
+        state = Decode.decodeWith bytes decodeString json
+
+        when state.result is
+            Err _ -> { result: Err TooShort, rest: state.rest }
+            Ok name ->
+                possibleIndex =
+                    nameBytes = Str.toUtf8 name
+                    options
+                    |> List.walkUntil (NoMatch, 0) \(_, index), option ->
+                        if
+                            nameBytes == option
+                        then
+                            Break (Match, index)
+                        else
+                            Continue (NoMatch, index + 1)
+
+                indexResult =
+                    when possibleIndex is
+                        (NoMatch, _) -> Err TooShort
+                        (Match, index) -> Ok index
+
+                { result: indexResult, rest: state.rest }
 
 # JSON NUMBER PRIMITIVE --------------------------------------------------------
 

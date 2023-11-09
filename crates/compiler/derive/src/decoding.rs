@@ -16,6 +16,7 @@ use crate::{synth_var, DerivedBody};
 
 mod list;
 mod record;
+mod tag_union;
 mod tuple;
 
 pub(crate) fn derive_decoder(
@@ -27,6 +28,7 @@ pub(crate) fn derive_decoder(
         FlatDecodableKey::List() => list::decoder(env, def_symbol),
         FlatDecodableKey::Record(fields) => record::decoder(env, def_symbol, fields),
         FlatDecodableKey::Tuple(arity) => tuple::decoder(env, def_symbol, arity),
+        FlatDecodableKey::TagUnion(tags) => tag_union::decoder(env, def_symbol, tags),
     };
 
     let specialization_lambda_sets =

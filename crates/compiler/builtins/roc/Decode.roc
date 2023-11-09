@@ -115,6 +115,8 @@ DecoderFormatting implements
     ## `finalizer` should produce the tuple value from the decoded `state`.
     tuple : state, (state, Nat -> [Next (Decoder state fmt), TooLong]), (state -> Result val DecodeError) -> Decoder val fmt where fmt implements DecoderFormatting
 
+    discriminant : List (List U8) -> Decoder Nat fmt where fmt implements DecoderFormatting
+
 ## Build a custom [Decoder] function. For example the implementation of
 ## `decodeBool` could be defined as follows;
 ##
