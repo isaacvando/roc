@@ -89,6 +89,7 @@ Json := { fieldNameMapping : FieldNameMapping }
         },
     ]
 
+
 ## Returns a JSON `Encoder` and `Decoder`
 json = @Json { fieldNameMapping: Default }
 
@@ -679,8 +680,8 @@ decodeTuple = \initialState, stepElem, finalizer -> Decode.custom \initialBytes,
                     (
                         when stepper state index is
                             TooLong ->
-                                { rest: beforeCommaOrBreak } <- bytes |> anything |> tryDecode
-                                { result: Ok state, rest: beforeCommaOrBreak }
+                                bytes |> anything |> tryDecode \{ rest: beforeCommaOrBreak }  -> 
+                                    { result: Ok state, rest: beforeCommaOrBreak }
 
                             Next decoder ->
                                 Decode.decodeWith bytes decoder json
@@ -708,6 +709,89 @@ expect
     actual = Decode.fromBytesPartial input json
 
     actual.result == Ok ("The Answer is", 42)
+
+
+# decoder =
+#     nameDecoder =
+#         ["Zero", "One", "Two"]
+#         |> List.map Str.toUtf8
+#         |> discriminant
+
+#     Decode.custom \bytes, fmt ->
+#         {nameResult, bytesAfterName} = Decode.decodeWith bytes nameDecoder fmt
+#         when nameResult is
+#             Err _ -> { result: Err TooShort, rest: bytesAfterName }
+#             Ok index ->
+#                 when index is
+#                     0 -> 
+#                         state = {}
+#                         stepper = \_, _ -> TooLong
+#                         finalizer = \{} -> Ok {}
+#                         dec = Decode.tuple state stepper finalizer
+#                         t1 = Decode.decodeWith bytesAfterName dec fmt
+
+#                         r = when t1.result is
+#                             Err _ -> Err TooShort
+#                             Ok {} -> Ok Zero
+#                         { result: r, rest: t1.rest }
+#                     1 ->
+#                         state : {e0: Result a [TooShort]}
+#                         state = {e0: Err TooShort}
+#                         stepper = \s, i ->
+#                             when i is
+#                                 0 ->
+#                                     Next (Decode.custom \b, f ->
+#                                         when Decode.decodeWith b Decode.decoder f is
+#                                             {result, rest} ->
+#                                                 {result: Result.map result \val -> {e0: Ok val}, rest})
+#                                 _ -> TooLong
+#                         finalizer = \{e0} -> 
+#                             when e0 is
+#                                 Ok val -> Ok val
+#                                 Err _ -> Err TooShort
+
+#                         t1 = Decode.decodeWith bytesAfterName (Decode.tuple state stepper finalizer) fmt
+
+#                         r = when t1.result is
+#                             Err _ -> Err TooShort
+#                             Ok val -> Ok (One val)
+#                         { result: r, rest: t1.rest }
+
+#                     2 ->
+#                         state : {e0 : Result b [TooShort], e1 : Result c [TooShort]}
+#                         state = {e0: Err TooShort, e1: Err TooShort}
+#                         stepper = \s, i ->
+#                             when i is
+#                                 0 ->
+#                                     Next (Decode.custom \b, f ->
+#                                         when Decode.decodeWith b Decode.decoder f is
+#                                             {result, rest} ->
+#                                                 {result: Result.map result \val -> {s & e0: Ok val}, rest})
+#                                 1 ->
+#                                     Next (Decode.custom \b, f ->
+#                                         when Decode.decodeWith b Decode.decoder f is
+#                                             {result, rest} ->
+#                                                 {result: Result.map result \val -> {s & e1: Ok val}, rest})
+#                                 _ -> TooLong
+#                         finalizer = \s -> 
+#                             when s is
+#                                 { e0: Ok v0, e1: Ok v1 } -> Ok (Two v0 v1)
+#                                 _ -> Err TooShort
+
+#                         r = Decode.decodeWith bytesAfterName (Decode.tuple state stepper finalizer) fmt
+
+#                         { result: r.result, rest: r.rest }
+
+#                     _ -> { result: Err TooShort, rest: bytesAfterName } # This error should be something different
+
+
+# expect
+#     actual : DecodeResult [Zero, One a, Two b c] _
+#     actual = Decode.decodeWith ("Two: [3, 4]" |> Str.toUtf8) decoder json
+
+#     actual.result == Ok (Two 3 4)
+
+
 
 parseExactChar : List U8, U8 -> DecodeResult {}
 parseExactChar = \bytes, char ->
@@ -741,28 +825,36 @@ tryDecode = \{ result, rest }, mapper ->
         Err e -> { result: Err e, rest }
 
 discriminant = \options -> Decode.custom \bytes, @Json {} ->
-        state = Decode.decodeWith bytes decodeString json
+    {result, rest} = Decode.decodeWith bytes decodeString json
 
-        when state.result is
-            Err _ -> { result: Err TooShort, rest: state.rest }
-            Ok name ->
-                possibleIndex =
-                    nameBytes = Str.toUtf8 name
-                    options
-                    |> List.walkUntil (NoMatch, 0) \(_, index), option ->
-                        if
-                            nameBytes == option
-                        then
-                            Break (Match, index)
-                        else
-                            Continue (NoMatch, index + 1)
+    when result is
+        Err _ -> { result: Err TooShort, rest }
+        Ok name ->
+            possibleIndex =
+                nameBytes = Str.toUtf8 name
+                options
+                |> List.walkUntil (NoMatch, 0) \(_, index), option ->
+                    if
+                        nameBytes == option
+                    then
+                        Break (Match, index)
+                    else
+                        Continue (NoMatch, index + 1)
 
-                indexResult =
-                    when possibleIndex is
-                        (NoMatch, _) -> Err TooShort
-                        (Match, index) -> Ok index
+            indexResult =
+                when possibleIndex is
+                    (NoMatch, _) -> Err TooShort
+                    (Match, index) -> Ok index
 
-                { result: indexResult, rest: state.rest }
+            { result: indexResult, rest }
+
+# discriminant decodes
+expect 
+    decoder = discriminant ["foo" |> Str.toUtf8, "bar" |> Str.toUtf8]
+    actual : DecodeResult Nat
+    actual = Decode.decodeWith ("\"bar\"" |> Str.toUtf8) decoder json
+
+    actual.result == Ok 1
 
 # JSON NUMBER PRIMITIVE --------------------------------------------------------
 

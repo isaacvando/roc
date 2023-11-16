@@ -117,6 +117,7 @@ DecoderFormatting implements
 
     discriminant : List (List U8) -> Decoder Nat fmt where fmt implements DecoderFormatting
 
+
 ## Build a custom [Decoder] function. For example the implementation of
 ## `decodeBool` could be defined as follows;
 ##
