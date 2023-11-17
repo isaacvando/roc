@@ -85,6 +85,7 @@ Json := { fieldNameMapping : FieldNameMapping }
             list: decodeList,
             record: decodeRecord,
             tuple: decodeTuple,
+            discriminant: discriminant,
         },
     ]
 
@@ -707,6 +708,29 @@ expect
     actual = Decode.fromBytesPartial input json
 
     actual.result == Ok ("The Answer is", 42)
+
+discriminant = \options -> Decode.custom \bytes, @Json {} ->
+        { result, rest } = Decode.decodeWith bytes decodeString json
+
+        when result is
+            Err _ -> { result: Err TooShort, rest }
+            Ok name ->
+                when discriminantHelp options 0 (Str.toUtf8 name) is
+                    NoMatch -> { result: Err TooShort, rest }
+                    Match index -> { result: Ok index, rest }
+
+discriminantHelp = \options, index, name ->
+    when List.get options index is
+        Ok val -> if val == name then Match index else discriminantHelp options (index + 1) name
+        Err _ -> NoMatch
+
+# discriminant decodes
+expect
+    decoder = discriminant ["foo" |> Str.toUtf8, "bar" |> Str.toUtf8]
+    actual : DecodeResult Nat
+    actual = Decode.decodeWith ("\"bar\"" |> Str.toUtf8) decoder json
+
+    actual.result == Ok 1
 
 parseExactChar : List U8, U8 -> DecodeResult {}
 parseExactChar = \bytes, char ->
