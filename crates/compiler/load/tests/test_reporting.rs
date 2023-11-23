@@ -2447,7 +2447,7 @@ mod test_reporting {
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `add` has an unexpected type:
+    This 2nd argument to + has an unexpected type:
 
     4│      0x4 + "foo"
                   ^^^^^
@@ -2456,7 +2456,7 @@ mod test_reporting {
 
         Str
 
-    But `add` needs its 2nd argument to be:
+    But + needs its 2nd argument to be:
 
         Int *
     "###
@@ -2472,7 +2472,7 @@ mod test_reporting {
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `add` has an unexpected type:
+    This 2nd argument to + has an unexpected type:
 
     4│      0x4 + 3.14
                   ^^^^
@@ -2481,7 +2481,7 @@ mod test_reporting {
 
         Frac *
 
-    But `add` needs its 2nd argument to be:
+    But + needs its 2nd argument to be:
 
         Int *
 
@@ -2500,7 +2500,7 @@ mod test_reporting {
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `add` has an unexpected type:
+    This 2nd argument to + has an unexpected type:
 
     4│      42 + True
                  ^^^^
@@ -2509,7 +2509,7 @@ mod test_reporting {
 
         [True]
 
-    But `add` needs its 2nd argument to be:
+    But + needs its 2nd argument to be:
 
         Num *
     "###
@@ -3556,7 +3556,7 @@ mod test_reporting {
 
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `add` has an unexpected type:
+    This 2nd argument to + has an unexpected type:
 
     14│      x + y + h + l + minlit + maxlit
                                       ^^^^^^
@@ -3565,7 +3565,7 @@ mod test_reporting {
 
         U128
 
-    But `add` needs its 2nd argument to be:
+    But + needs its 2nd argument to be:
 
         I128 or Dec
     "###
@@ -3843,7 +3843,7 @@ mod test_reporting {
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `add` has an unexpected type:
+    This 2nd argument to + has an unexpected type:
 
     4│      \{ x, y ? True } -> x + y
                                     ^
@@ -3852,7 +3852,7 @@ mod test_reporting {
 
         [True]
 
-    But `add` needs its 2nd argument to be:
+    But + needs its 2nd argument to be:
 
         Num a
     "###
@@ -4269,7 +4269,7 @@ mod test_reporting {
         @r###"
     ── SYNTAX PROBLEM ──────────────────────────────────────── /code/proj/Main.roc ─
 
-    I trying to parse a record field access here:
+    I am trying to parse a record field access here:
 
     4│      foo.bar.
                     ^
@@ -4563,7 +4563,7 @@ mod test_reporting {
         comment_with_control_character,
         "# comment with a \x07\n",
         @r###"
-    ── ASII CONTROL CHARACTER ──────── tmp/comment_with_control_character/Test.roc ─
+    ── ASCII CONTROL CHARACTER ─────── tmp/comment_with_control_character/Test.roc ─
 
     I encountered an ASCII control character:
 
@@ -5667,7 +5667,7 @@ All branches in an `if` must have the same type!
         @r###"
     ── SYNTAX PROBLEM ──────────────────────────────────────── /code/proj/Main.roc ─
 
-    I trying to parse a record field access here:
+    I am trying to parse a record field access here:
 
     4│      Num.add . 23
                      ^
@@ -6377,7 +6377,7 @@ In roc, functions are always written as a lambda, like{}
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `mul` has an unexpected type:
+    This 2nd argument to * has an unexpected type:
 
     5│      mult = \a, b -> a * b
                                 ^
@@ -6386,7 +6386,7 @@ In roc, functions are always written as a lambda, like{}
 
         F64
 
-    But `mul` needs its 2nd argument to be:
+    But * needs its 2nd argument to be:
 
         Num *
 
@@ -6421,7 +6421,7 @@ In roc, functions are always written as a lambda, like{}
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `mul` has an unexpected type:
+    This 2nd argument to * has an unexpected type:
 
     5│      mult = \a, b -> a * b
                                 ^
@@ -6430,7 +6430,7 @@ In roc, functions are always written as a lambda, like{}
 
         F64
 
-    But `mul` needs its 2nd argument to be:
+    But * needs its 2nd argument to be:
 
         Num a
 
@@ -9234,7 +9234,7 @@ In roc, functions are always written as a lambda, like{}
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `isEq` has an unexpected type:
+    This 2nd argument to == has an unexpected type:
 
     9│          Job lst -> lst == ""
                                   ^^
@@ -9243,7 +9243,7 @@ In roc, functions are always written as a lambda, like{}
 
         Str
 
-    But `isEq` needs its 2nd argument to be:
+    But == needs its 2nd argument to be:
 
         List [Job ∞] as ∞
     "###
@@ -10013,7 +10013,7 @@ In roc, functions are always written as a lambda, like{}
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `isEq` has an unexpected type:
+    This 2nd argument to == has an unexpected type:
 
     4│      0x80000000000000000000000000000000 == -0x80000000000000000000000000000000
                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -10022,7 +10022,7 @@ In roc, functions are always written as a lambda, like{}
 
         I128
 
-    But `isEq` needs its 2nd argument to be:
+    But == needs its 2nd argument to be:
 
         U128
     "###
@@ -10038,7 +10038,7 @@ In roc, functions are always written as a lambda, like{}
         @r###"
     ── TYPE MISMATCH ───────────────────────────────────────── /code/proj/Main.roc ─
 
-    This 2nd argument to `isEq` has an unexpected type:
+    This 2nd argument to == has an unexpected type:
 
     4│      170141183460469231731687303715884105728 == -170141183460469231731687303715884105728
                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -10047,7 +10047,7 @@ In roc, functions are always written as a lambda, like{}
 
         I128 or Dec
 
-    But `isEq` needs its 2nd argument to be:
+    But == needs its 2nd argument to be:
 
         U128
     "###
@@ -12594,6 +12594,60 @@ In roc, functions are always written as a lambda, like{}
 
     I would have to crash if I saw one of those! Add branches for them!
     "###
+    );
+
+    test_no_problem!(
+        list_match_spread_required_front_back,
+        indoc!(
+            r#"
+            l : List [A, B]
+
+            when l is
+                [A, ..] -> ""
+                [.., A] -> ""
+                [..] -> ""
+            "#
+        )
+    );
+
+    test_report!(
+        list_match_spread_redundant_front_back,
+        indoc!(
+            r#"
+            l : List [A]
+
+            when l is
+                [A, ..] -> ""
+                [.., A] -> ""
+                [..] -> ""
+            "#
+        ),
+    @r###"
+    ── REDUNDANT PATTERN ───────────────────────────────────── /code/proj/Main.roc ─
+    
+    The 2nd pattern is redundant:
+    
+    6│       when l is
+    7│           [A, ..] -> ""
+    8│>          [.., A] -> ""
+    9│           [..] -> ""
+    
+    Any value of this shape will be handled by a previous pattern, so this
+    one should be removed.
+    "###
+    );
+
+    test_no_problem!(
+        list_match_spread_as,
+        indoc!(
+            r#"
+            l : List [A, B]
+
+            when l is
+                [A, .. as rest] | [.. as rest, A] -> rest
+                [.. as rest] -> rest
+            "#
+        )
     );
 
     test_no_problem!(
