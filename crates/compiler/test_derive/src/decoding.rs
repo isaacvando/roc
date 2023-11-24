@@ -231,3 +231,13 @@ fn tuple_2_fields() {
         )
     })
 }
+
+#[test]
+fn tag_union() {
+    derive_test(Decoder, v!([A v!(U8) v!(STR), B v!(STR)]), |golden| {
+        assert_snapshot!(golden, @r###"
+        foo
+        "###
+        )
+    })
+}

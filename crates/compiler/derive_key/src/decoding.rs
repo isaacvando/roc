@@ -74,8 +74,25 @@ impl FlatDecodable {
 
                     Ok(Key(FlatDecodableKey::Tuple(elems_iter.count() as _)))
                 }
-                FlatType::TagUnion(_tags, _ext) | FlatType::RecursiveTagUnion(_, _tags, _ext) => {
-                    Err(Underivable) // yet
+                FlatType::TagUnion(tags, ext) | FlatType::RecursiveTagUnion(_, tags, ext) => {
+                    let (tags_iter, ext) = tags.unsorted_tags_and_ext(subs, ext);
+
+                    check_derivable_ext_var(subs, ext.var(), |ext| {
+                        matches!(ext, Content::Structure(FlatType::EmptyTagUnion))
+                    })?;
+
+                    let mut tag_names_and_payload_sizes: Vec<_> = tags_iter
+                        .tags
+                        .into_iter()
+                        .map(|(name, payload_slice)| {
+                            let payload_size = payload_slice.len();
+                            (name.clone(), payload_size as _)
+                        })
+                        .collect();
+
+                    tag_names_and_payload_sizes.sort_by(|(t1, _), (t2, _)| t1.cmp(t2));
+
+                    Ok(Key(FlatDecodableKey::TagUnion(tag_names_and_payload_sizes)))
                 }
                 FlatType::FunctionOrTagUnion(_name_index, _, _) => {
                     Err(Underivable) // yet
