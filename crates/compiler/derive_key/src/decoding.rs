@@ -1,8 +1,8 @@
-use roc_module::{ident::Lowercase, symbol::Symbol};
+use roc_module::{ident::Lowercase, ident::TagName, symbol::Symbol};
 use roc_types::subs::{Content, FlatType, Subs, Variable};
 
 use crate::{
-    util::{check_derivable_ext_var, debug_name_record, debug_name_tuple},
+    util::{check_derivable_ext_var, debug_name_record, debug_name_tag, debug_name_tuple},
     DeriveError,
 };
 
@@ -19,6 +19,7 @@ pub enum FlatDecodableKey {
     // Unfortunate that we must allocate here, c'est la vie
     Record(Vec<Lowercase>),
     Tuple(u32),
+    TagUnion(Vec<(TagName, u16)>),
 }
 
 impl FlatDecodableKey {
@@ -27,6 +28,7 @@ impl FlatDecodableKey {
             FlatDecodableKey::List() => "list".to_string(),
             FlatDecodableKey::Record(fields) => debug_name_record(fields),
             FlatDecodableKey::Tuple(arity) => debug_name_tuple(*arity),
+            FlatDecodableKey::TagUnion(tags) => debug_name_tag(tags),
         }
     }
 }
