@@ -3,6 +3,7 @@ use roc_can::expr::Expr;
 use crate::util::Env;
 use roc_module::ident::TagName;
 use roc_module::symbol::Symbol;
+use roc_region::all::Loc;
 use roc_types::subs::Variable;
 
 // We want to generate an implementation like this;
@@ -22,14 +23,14 @@ use roc_types::subs::Variable;
 //                 when index is
 //                     0 ->
 //                         state = {}
-//                         stepper = \_, _ -> TooLong
+//                         stepElem = \_, _ -> TooLong
 //                         finalizer = \_ -> Ok Zero
 
-//                         Decode.decodeWith bytesAfterName (Decode.tuple state stepper finalizer) fmt
+//                         Decode.decodeWith bytesAfterName (Decode.tuple state stepElem finalizer) fmt
 
 //                     1 ->
 //                         state = { e0: Err TooShort }
-//                         stepper = \s, i ->
+//                         stepElem = \s, i ->
 //                             when i is
 //                                 0 ->
 //                                     Next
@@ -46,11 +47,11 @@ use roc_types::subs::Variable;
 //                                 { e0: Ok val } -> Ok (One val)
 //                                 _ -> Err TooShort
 
-//                         Decode.decodeWith bytesAfterName (Decode.tuple state stepper finalizer) fmt
+//                         Decode.decodeWith bytesAfterName (Decode.tuple state stepElem finalizer) fmt
 
 //                     2 ->
 //                         state = { e0: Err TooShort, e1: Err TooShort }
-//                         stepper = \s, i ->
+//                         stepElem = \s, i ->
 //                             when i is
 //                                 0 ->
 //                                     Next
@@ -76,7 +77,7 @@ use roc_types::subs::Variable;
 //                                 { e0: Ok v0, e1: Ok v1 } -> Ok (Two v0 v1)
 //                                 _ -> Err TooShort
 
-//                         Decode.decodeWith bytesAfterName (Decode.tuple state stepper finalizer) fmt
+//                         Decode.decodeWith bytesAfterName (Decode.tuple state stepElem finalizer) fmt
 
 //                     _ -> { result: Err TooShort, rest: bytesAfterName }
 
@@ -85,5 +86,25 @@ pub(crate) fn decoder(
     _def_symbol: Symbol,
     tags: Vec<(TagName, u16)>,
 ) -> (Expr, Variable) {
-    panic!("decoding tag unions not yet implemented");
+    name_decoder(env, tags)
+}
+
+//     nameDecoder =
+//         ["Zero", "One", "Two"]
+//         |> List.map Str.toUtf8
+//         |> discriminant
+fn name_decoder(env: &mut Env, tags: Vec<(TagName, u16)>) -> (Expr, Variable) {
+    let list_of_variants_body = tags
+        .into_iter()
+        .map(|(name, _)| {
+            let boxed_str = String::from(name.as_ident_str().as_str()).into_boxed_str();
+            Loc::at_zero(Expr::Str(boxed_str))
+        })
+        .collect();
+    let list_of_variants = Expr::List {
+        elem_var: env.subs.fresh_unnamed_flex_var(),
+        loc_elems: list_of_variants_body,
+    };
+
+    (list_of_variants, env.subs.fresh_unnamed_flex_var())
 }
