@@ -1,6 +1,7 @@
 use roc_can::expr::Expr;
 
 use crate::util::Env;
+use roc_module::called_via::CalledVia;
 use roc_module::ident::TagName;
 use roc_module::symbol::Symbol;
 use roc_region::all::Loc;
@@ -102,9 +103,39 @@ fn name_decoder(env: &mut Env, tags: Vec<(TagName, u16)>) -> (Expr, Variable) {
         })
         .collect();
     let list_of_variants = Expr::List {
-        elem_var: env.subs.fresh_unnamed_flex_var(),
+        elem_var: Variable::STR,
         loc_elems: list_of_variants_body,
     };
 
-    (list_of_variants, env.subs.fresh_unnamed_flex_var())
+    let list_map_fn = Box::new((
+        env.subs.fresh_unnamed_flex_var(),
+        Loc::at_zero(Expr::Var(
+            Symbol::LIST_MAP,
+            env.subs.fresh_unnamed_flex_var(),
+        )),
+        env.subs.fresh_unnamed_flex_var(),
+        env.subs.fresh_unnamed_flex_var(),
+    ));
+
+    // TODO: Figure out why this is panicking
+    // let str_to_utf8_var = env.import_builtin_symbol_var(Symbol::STR_TO_UTF8);
+    let list_map_to_utf8_call = Expr::Call(
+        list_map_fn,
+        vec![
+            (
+                env.subs.fresh_unnamed_flex_var(),
+                Loc::at_zero(Expr::Var(
+                    Symbol::STR_TO_UTF8,
+                    env.subs.fresh_unnamed_flex_var(),
+                )),
+            ),
+            (
+                env.subs.fresh_unnamed_flex_var(),
+                Loc::at_zero(list_of_variants),
+            ),
+        ],
+        CalledVia::Space,
+    );
+
+    (list_map_to_utf8_call, env.subs.fresh_unnamed_flex_var())
 }
