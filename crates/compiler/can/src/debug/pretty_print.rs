@@ -413,7 +413,7 @@ fn expr<'a>(c: &Ctx, p: EPrec, f: &'a Arena<'a>, e: &'a Expr) -> DocBuilder<'a, 
                 )
                 .group()
         ),
-        Crash { .. } => todo!(),
+        Crash { .. } => f.text("crash placeholder"),
         ZeroArgumentTag { .. } => todo!(),
         OpaqueRef { name, argument, .. } => maybe_paren!(
             Free,

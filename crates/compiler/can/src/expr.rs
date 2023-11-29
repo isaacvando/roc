@@ -148,8 +148,16 @@ pub enum Expr {
     /// This is *only* for calling functions, not for tag application.
     /// The Tag variant contains any applied values inside it.
     Call(
-        Box<(Variable, Loc<Expr>, Variable, Variable)>,
+        // function
+        Box<(
+            Variable,  // function var
+            Loc<Expr>, // function symbol
+            Variable,  // closure var
+            Variable,  // return var
+        )>,
+        // arguments
         Vec<(Variable, Loc<Expr>)>,
+        // calling method
         CalledVia,
     ),
     RunLowLevel {
