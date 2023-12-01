@@ -219,20 +219,19 @@ fn finalizer(env: &mut Env, tag_name: TagName, payload_vars: Vec<Variable>) -> (
             let label = format!("e{}", index);
             let pattern_var = env.subs.fresh_unnamed_flex_var();
             Loc::at_zero(RecordDestruct {
-                var: *variable,
+                var: env.subs.fresh_unnamed_flex_var(),
                 label: label.clone().into(),
                 symbol: env.new_symbol(label),
-                typ: DestructType::Optional( // TODO: need to implement DestructType for Required
+                typ: DestructType::Guard(
                     pattern_var,
-                    Loc::at_zero(Expr::Tag {
-                        tag_union_var: pattern_var,
+                    Loc::at_zero(Pattern::AppliedTag {
+                        whole_var: env.subs.fresh_unnamed_flex_var(),
                         ext_var: env.new_ext_var(ExtensionKind::TagUnion),
-                        name: "Ok".into(),
+                        tag_name: "Ok".into(),
                         arguments: vec![(
-                            *variable,
-                            Loc::at_zero(Expr::Var(
+                            env.subs.fresh_unnamed_flex_var(),
+                            Loc::at_zero(Pattern::Identifier(
                                 env.new_symbol(format!("v{}", index)),
-                                *variable,
                             )),
                         )],
                     }),
