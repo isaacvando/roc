@@ -1,5 +1,4 @@
-use roc_can::expr::WhenBranchPattern;
-use roc_can::expr::{Expr, WhenBranch};
+use roc_can::expr::{AnnotatedMark, ClosureData, Expr, Recursive, WhenBranch, WhenBranchPattern};
 use roc_can::pattern::{DestructType, Pattern, RecordDestruct};
 
 use crate::util::{Env, ExtensionKind};
@@ -93,8 +92,9 @@ pub(crate) fn decoder(
     // name_decoder(env, tags)
     let var1 = env.subs.fresh_unnamed_flex_var();
     let var2 = env.subs.fresh_unnamed_flex_var();
+    let finalizer_var = env.subs.fresh_unnamed_flex_var();
 
-    finalizer(env, "Foo".into(), vec![var1, var2])
+    finalizer(env, "Foo".into(), vec![var1, var2], finalizer_var)
 }
 
 //     nameDecoder =
@@ -177,22 +177,31 @@ fn name_decoder(env: &mut Env, tags: Vec<(TagName, u16)>) -> (Expr, Variable) {
 //     when s is
 //         { e0: Ok v0, e1: Ok v1 } -> Ok (Two v0 v1)
 //         _ -> Err TooShort
-fn finalizer(env: &mut Env, tag_name: TagName, payload_vars: Vec<Variable>) -> (Expr, Variable) {
+fn finalizer(
+    env: &mut Env,
+    tag_name: TagName,
+    payload_vars: Vec<Variable>,
+    finalizer_var: Variable,
+) -> (Expr, Variable) {
     let when_var = env.subs.fresh_unnamed_flex_var();
     let s_arg_symbol = env.new_symbol("s");
     let s_arg_variable = env.subs.fresh_unnamed_flex_var();
 
-    // let payload_labels = payload_vars
-    //     .iter()
-    //     .enumerate()
-    //     .map(|(index, _)| format!("v{}", index))
-    //     .collect();
+    let arity = payload_vars.len();
+
+    let symbols: Vec<Symbol> = payload_vars
+        .iter()
+        .enumerate()
+        .map(|(index, _)| env.new_symbol(format!("v{}", index)))
+        .collect();
+
+    // let mut tag_payload: Vec<(Variable, Loc<Expr>)> = Vec::with_capacity(arity);
 
     let tag_payload = payload_vars
         .iter()
         .enumerate()
         .map(|(index, variable)| {
-            let expr = Expr::Var(env.new_symbol(format!("v{}", index)), *variable);
+            let expr = Expr::Var(*symbols.get(index).unwrap(), *variable);
             (*variable, Loc::at_zero(expr))
         })
         .collect();
@@ -230,9 +239,7 @@ fn finalizer(env: &mut Env, tag_name: TagName, payload_vars: Vec<Variable>) -> (
                         tag_name: "Ok".into(),
                         arguments: vec![(
                             env.subs.fresh_unnamed_flex_var(),
-                            Loc::at_zero(Pattern::Identifier(
-                                env.new_symbol(format!("v{}", index)),
-                            )),
+                            Loc::at_zero(Pattern::Identifier(*symbols.get(index).unwrap())),
                         )],
                     }),
                 ),
@@ -240,19 +247,46 @@ fn finalizer(env: &mut Env, tag_name: TagName, payload_vars: Vec<Variable>) -> (
         })
         .collect();
 
-    let branches = vec![WhenBranch {
-        patterns: vec![WhenBranchPattern {
-            pattern: Loc::at_zero(Pattern::RecordDestructure {
-                whole_var: s_arg_variable,
-                ext_var: env.new_ext_var(ExtensionKind::Record),
-                destructs: record_pattern_destructs,
+    let branches = vec![
+        WhenBranch {
+            patterns: vec![WhenBranchPattern {
+                pattern: Loc::at_zero(Pattern::RecordDestructure {
+                    whole_var: s_arg_variable,
+                    ext_var: env.new_ext_var(ExtensionKind::Record),
+                    destructs: record_pattern_destructs,
+                }),
+                degenerate: false,
+            }],
+            value: Loc::at_zero(ok_branch_value),
+            guard: None,
+            redundant: RedundantMark::known_non_redundant(),
+        },
+        WhenBranch {
+            patterns: vec![WhenBranchPattern {
+                pattern: Loc::at_zero(Pattern::Underscore),
+                degenerate: false,
+            }],
+            value: Loc::at_zero(Expr::Tag {
+                tag_union_var: when_var,
+                ext_var: env.new_ext_var(ExtensionKind::TagUnion),
+                name: "Err".into(),
+                arguments: vec![{
+                    let too_short_var = env.subs.fresh_unnamed_flex_var();
+                    (
+                        too_short_var,
+                        Loc::at_zero(Expr::Tag {
+                            tag_union_var: too_short_var,
+                            ext_var: env.new_ext_var(ExtensionKind::TagUnion),
+                            name: "TooShort".into(),
+                            arguments: vec![],
+                        }),
+                    )
+                }],
             }),
-            degenerate: false,
-        }],
-        value: Loc::at_zero(ok_branch_value),
-        guard: None,
-        redundant: RedundantMark::known_non_redundant(),
-    }];
+            guard: None,
+            redundant: RedundantMark::known_non_redundant(),
+        },
+    ];
 
     let when = Expr::When {
         loc_cond: Box::new(Loc::at_zero(Expr::Var(s_arg_symbol, s_arg_variable))),
@@ -264,5 +298,24 @@ fn finalizer(env: &mut Env, tag_name: TagName, payload_vars: Vec<Variable>) -> (
         exhaustive: ExhaustiveMark::known_exhaustive(),
     };
 
-    (when, env.subs.fresh_unnamed_flex_var())
+    // TODO: it looks like this needs to be a lambda set var
+    let closure_type = env.subs.fresh_unnamed_flex_var();
+    let finalizer_symbol = env.new_symbol("finalizer");
+
+    let closure = Expr::Closure(ClosureData {
+        function_type: finalizer_var,
+        closure_type: closure_type,
+        return_type: when_var,
+        name: finalizer_symbol,
+        captured_symbols: vec![],
+        recursive: Recursive::NotRecursive,
+        arguments: vec![(
+            s_arg_variable,
+            AnnotatedMark::known_exhaustive(),
+            Loc::at_zero(Pattern::Identifier(s_arg_symbol)),
+        )],
+        loc_body: Box::new(Loc::at_zero(when)),
+    });
+
+    (closure, finalizer_var)
 }
