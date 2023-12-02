@@ -189,22 +189,17 @@ fn finalizer(
 
     let arity = payload_vars.len();
 
-    let symbols: Vec<Symbol> = payload_vars
-        .iter()
-        .enumerate()
-        .map(|(index, _)| env.new_symbol(format!("v{}", index)))
-        .collect();
+    let mut symbols: Vec<Symbol> = Vec::with_capacity(arity);
+    for index in 0..arity {
+        symbols.push(env.new_symbol(format!("v{}", index)))
+    }
 
-    // let mut tag_payload: Vec<(Variable, Loc<Expr>)> = Vec::with_capacity(arity);
-
-    let tag_payload = payload_vars
-        .iter()
-        .enumerate()
-        .map(|(index, variable)| {
-            let expr = Expr::Var(*symbols.get(index).unwrap(), *variable);
-            (*variable, Loc::at_zero(expr))
-        })
-        .collect();
+    let mut tag_payload = Vec::with_capacity(arity);
+    for index in 0..arity {
+        let variable = *payload_vars.get(index).unwrap();
+        let expr = Expr::Var(*symbols.get(index).unwrap(), variable);
+        tag_payload.push((variable, Loc::at_zero(expr)));
+    }
 
     let tag_var = env.subs.fresh_unnamed_flex_var();
     let tag = Expr::Tag {
@@ -221,31 +216,31 @@ fn finalizer(
         arguments: vec![(tag_var, Loc::at_zero(tag))],
     };
 
-    let record_pattern_destructs = payload_vars
-        .iter()
-        .enumerate()
-        .map(|(index, variable)| {
-            let label = format!("e{}", index);
-            let pattern_var = env.subs.fresh_unnamed_flex_var();
-            Loc::at_zero(RecordDestruct {
-                var: env.subs.fresh_unnamed_flex_var(),
-                label: label.clone().into(),
-                symbol: env.new_symbol(label),
-                typ: DestructType::Guard(
-                    pattern_var,
-                    Loc::at_zero(Pattern::AppliedTag {
-                        whole_var: env.subs.fresh_unnamed_flex_var(),
-                        ext_var: env.new_ext_var(ExtensionKind::TagUnion),
-                        tag_name: "Ok".into(),
-                        arguments: vec![(
-                            env.subs.fresh_unnamed_flex_var(),
-                            Loc::at_zero(Pattern::Identifier(*symbols.get(index).unwrap())),
-                        )],
-                    }),
-                ),
-            })
-        })
-        .collect();
+    let mut record_pattern_destructs = Vec::with_capacity(arity);
+    for index in 0..arity {
+        let label = format!("e{}", index);
+        let pattern_var = env.subs.fresh_unnamed_flex_var();
+        let destruct_type = DestructType::Guard(
+            pattern_var,
+            Loc::at_zero(Pattern::AppliedTag {
+                whole_var: env.subs.fresh_unnamed_flex_var(),
+                ext_var: env.new_ext_var(ExtensionKind::TagUnion),
+                tag_name: "Ok".into(),
+                arguments: vec![(
+                    env.subs.fresh_unnamed_flex_var(),
+                    Loc::at_zero(Pattern::Identifier(*symbols.get(index).unwrap())),
+                )],
+            }),
+        );
+        let destruct = Loc::at_zero(RecordDestruct {
+            var: env.subs.fresh_unnamed_flex_var(),
+            label: label.clone().into(),
+            symbol: env.new_symbol(label),
+            typ: destruct_type,
+        });
+
+        record_pattern_destructs.push(destruct);
+    }
 
     let branches = vec![
         WhenBranch {
