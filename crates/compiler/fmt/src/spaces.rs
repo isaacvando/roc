@@ -5,8 +5,8 @@ use roc_parse::{
     ast::{
         AbilityImpls, AbilityMember, AssignedField, Collection, CommentOrNewline, Defs, Expr,
         Header, Implements, ImplementsAbilities, ImplementsAbility, ImplementsClause, Module,
-        Pattern, RecordBuilderField, Spaced, Spaces, StrLiteral, StrSegment, Tag, TypeAnnotation,
-        TypeDef, TypeHeader, ValueDef, WhenBranch,
+        Pattern, PatternAs, RecordBuilderField, Spaced, Spaces, StrLiteral, StrSegment, Tag,
+        TypeAnnotation, TypeDef, TypeHeader, ValueDef, WhenBranch,
     },
     header::{
         AppHeader, ExposedName, HostedHeader, ImportsEntry, InterfaceHeader, KeywordItem,
@@ -726,6 +726,9 @@ impl<'a> RemoveSpaces<'a> for Expr<'a> {
                 arena.alloc(a.remove_spaces(arena)),
                 arena.alloc(b.remove_spaces(arena)),
             ),
+            Expr::LowLevelDbg(_, _, _) => unreachable!(
+                "LowLevelDbg should only exist after desugaring, not during formatting"
+            ),
             Expr::Apply(a, b, c) => Expr::Apply(
                 arena.alloc(a.remove_spaces(arena)),
                 b.remove_spaces(arena),
@@ -797,9 +800,10 @@ impl<'a> RemoveSpaces<'a> for Pattern<'a> {
             Pattern::OptionalField(a, b) => {
                 Pattern::OptionalField(a, arena.alloc(b.remove_spaces(arena)))
             }
-            Pattern::As(pattern, pattern_as) => {
-                Pattern::As(arena.alloc(pattern.remove_spaces(arena)), pattern_as)
-            }
+            Pattern::As(pattern, pattern_as) => Pattern::As(
+                arena.alloc(pattern.remove_spaces(arena)),
+                pattern_as.remove_spaces(arena),
+            ),
             Pattern::NumLiteral(a) => Pattern::NumLiteral(a),
             Pattern::NonBase10Literal {
                 string,
@@ -823,7 +827,10 @@ impl<'a> RemoveSpaces<'a> for Pattern<'a> {
             Pattern::SingleQuote(a) => Pattern::SingleQuote(a),
             Pattern::List(pats) => Pattern::List(pats.remove_spaces(arena)),
             Pattern::Tuple(pats) => Pattern::Tuple(pats.remove_spaces(arena)),
-            Pattern::ListRest(opt_pattern_as) => Pattern::ListRest(opt_pattern_as),
+            Pattern::ListRest(opt_pattern_as) => Pattern::ListRest(
+                opt_pattern_as
+                    .map(|(_, pattern_as)| ([].as_ref(), pattern_as.remove_spaces(arena))),
+            ),
         }
     }
 }
@@ -930,6 +937,15 @@ impl<'a> RemoveSpaces<'a> for ImplementsAbilities<'a> {
             }
             ImplementsAbilities::SpaceBefore(derived, _)
             | ImplementsAbilities::SpaceAfter(derived, _) => derived.remove_spaces(arena),
+        }
+    }
+}
+
+impl<'a> RemoveSpaces<'a> for PatternAs<'a> {
+    fn remove_spaces(&self, arena: &'a Bump) -> Self {
+        PatternAs {
+            spaces_before: &[],
+            identifier: self.identifier.remove_spaces(arena),
         }
     }
 }

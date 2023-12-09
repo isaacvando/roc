@@ -4,6 +4,7 @@ const math = std.math;
 const utils = @import("utils.zig");
 const expect = @import("expect.zig");
 const panic_utils = @import("panic.zig");
+const dbg_utils = @import("dbg.zig");
 
 comptime {
     _ = @import("compiler_rt.zig");
@@ -32,6 +33,7 @@ comptime {
     exportDecFn(dec.fromF64C, "from_float.f64");
     exportDecFn(dec.fromStr, "from_str");
     exportDecFn(dec.fromU64C, "from_u64");
+    exportDecFn(dec.logC, "log");
     exportDecFn(dec.mulC, "mul_with_overflow");
     exportDecFn(dec.mulOrPanicC, "mul_or_panic");
     exportDecFn(dec.mulSaturatedC, "mul_saturated");
@@ -230,6 +232,7 @@ comptime {
 
 // Utils
 comptime {
+    exportUtilsFn(utils.test_dbg, "test_dbg");
     exportUtilsFn(utils.test_panic, "test_panic");
     exportUtilsFn(utils.increfRcPtrC, "incref_rc_ptr");
     exportUtilsFn(utils.decrefRcPtrC, "decref_rc_ptr");
@@ -243,12 +246,12 @@ comptime {
     exportUtilsFn(utils.dictPseudoSeed, "dict_pseudo_seed");
 
     @export(panic_utils.panic, .{ .name = "roc_builtins.utils." ++ "panic", .linkage = .Weak });
+    @export(dbg_utils.dbg_impl, .{ .name = "roc_builtins.utils." ++ "dbg_impl", .linkage = .Weak });
 
     if (builtin.target.cpu.arch != .wasm32) {
         exportUtilsFn(expect.expectFailedStartSharedBuffer, "expect_failed_start_shared_buffer");
         exportUtilsFn(expect.expectFailedStartSharedFile, "expect_failed_start_shared_file");
         exportUtilsFn(expect.notifyParentExpect, "notify_parent_expect");
-        exportUtilsFn(expect.notifyParentDbg, "notify_parent_dbg");
 
         // sets the buffer used for expect failures
         @export(expect.setSharedBuffer, .{ .name = "set_shared_buffer", .linkage = .Weak });

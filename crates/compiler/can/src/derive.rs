@@ -8,7 +8,7 @@
 
 use roc_error_macros::internal_error;
 use roc_module::{called_via::CalledVia, symbol::Symbol};
-use roc_parse::ast;
+use roc_parse::ast::{self, Collection};
 use roc_region::all::{Loc, Region};
 
 use crate::{env::Env, pattern::Pattern, scope::Scope};
@@ -213,6 +213,93 @@ fn is_eq<'a>(env: &mut Env<'a>, at_opaque: &'a str) -> ast::Expr<'a> {
     )
 }
 
+fn to_inspector<'a>(env: &mut Env<'a>, at_opaque: &'a str) -> ast::Expr<'a> {
+    // Inspect for opaques as a tag so it prints `@Opaque payload`.
+    let alloc_pat = |it| env.arena.alloc(Loc::at(DERIVED_REGION, it));
+    let alloc_expr = |it| env.arena.alloc(Loc::at(DERIVED_REGION, it));
+
+    let payload = "#payload";
+
+    // \@Opaque payload
+    let opaque_ref = alloc_pat(ast::Pattern::OpaqueRef(at_opaque));
+    let opaque_apply_pattern = ast::Pattern::Apply(
+        opaque_ref,
+        &*env
+            .arena
+            .alloc([Loc::at(DERIVED_REGION, ast::Pattern::Identifier(payload))]),
+    );
+
+    // Inspect.toInspector payload
+    let to_inspector_payload = alloc_expr(ast::Expr::Apply(
+        alloc_expr(ast::Expr::Var {
+            module_name: "Inspect",
+            ident: "toInspector",
+        }),
+        &*env.arena.alloc([&*alloc_expr(ast::Expr::Var {
+            module_name: "",
+            ident: payload,
+        })]),
+        roc_module::called_via::CalledVia::Space,
+    ));
+
+    // Inspect.tag "@opaque" [Inspect.toInspector payload]
+    let to_inspector_list = alloc_expr(ast::Expr::List(Collection::with_items(
+        &*env.arena.alloc([&*to_inspector_payload]),
+    )));
+    let opaque_name = alloc_expr(ast::Expr::Str(ast::StrLiteral::PlainLine(at_opaque)));
+
+    let opaque_inspector = alloc_expr(ast::Expr::Apply(
+        alloc_expr(ast::Expr::Var {
+            module_name: "Inspect",
+            ident: "tag",
+        }),
+        &*env.arena.alloc([&*opaque_name, &*to_inspector_list]),
+        roc_module::called_via::CalledVia::Space,
+    ));
+
+    let fmt = "#fmt";
+
+    // \fmt -> Inspect.apply opaqueInspector fmt
+    let apply_opaque_inspector = alloc_expr(ast::Expr::Apply(
+        alloc_expr(ast::Expr::Var {
+            module_name: "Inspect",
+            ident: "apply",
+        }),
+        &*env.arena.alloc([
+            &*opaque_inspector,
+            &*alloc_expr(ast::Expr::Var {
+                module_name: "",
+                ident: fmt,
+            }),
+        ]),
+        roc_module::called_via::CalledVia::Space,
+    ));
+
+    let custom_closure = alloc_expr(ast::Expr::Closure(
+        env.arena
+            .alloc([Loc::at(DERIVED_REGION, ast::Pattern::Identifier(fmt))]),
+        apply_opaque_inspector,
+    ));
+
+    // Inspect.custom \fmt -> ...
+    let custom = alloc_expr(ast::Expr::Apply(
+        alloc_expr(ast::Expr::Var {
+            module_name: "Inspect",
+            ident: "custom",
+        }),
+        env.arena.alloc([&*custom_closure]),
+        CalledVia::Space,
+    ));
+
+    // \@Opaque payload -> (Inspect.custom \fmt -> ...)
+    ast::Expr::Closure(
+        &*env
+            .arena
+            .alloc([Loc::at(DERIVED_REGION, opaque_apply_pattern)]),
+        custom,
+    )
+}
+
 pub const DERIVED_REGION: Region = Region::zero();
 
 pub(crate) fn synthesize_member_impl<'a>(
@@ -232,6 +319,10 @@ pub(crate) fn synthesize_member_impl<'a>(
         Symbol::DECODE_DECODER => (format!("#{opaque_name}_decoder"), decoder(env, at_opaque)),
         Symbol::HASH_HASH => (format!("#{opaque_name}_hash"), hash(env, at_opaque)),
         Symbol::BOOL_IS_EQ => (format!("#{opaque_name}_isEq"), is_eq(env, at_opaque)),
+        Symbol::INSPECT_TO_INSPECTOR => (
+            format!("#{opaque_name}_toInspector"),
+            to_inspector(env, at_opaque),
+        ),
         other => internal_error!("{:?} is not a derivable ability member!", other),
     };
 

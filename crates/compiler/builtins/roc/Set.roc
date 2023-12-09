@@ -5,6 +5,8 @@ interface Set
         single,
         walk,
         walkUntil,
+        keepIf,
+        dropIf,
         insert,
         len,
         isEmpty,
@@ -25,6 +27,7 @@ interface Set
         Dict.{ Dict },
         Num.{ Nat },
         Hash.{ Hash, Hasher },
+        Inspect.{ Inspect, Inspector, InspectFormatter },
     ]
 
 ## Provides a [set](https://en.wikipedia.org/wiki/Set_(abstract_data_type))
@@ -36,6 +39,9 @@ Set k := Dict.Dict k {} where k implements Hash & Eq
         },
         Hash {
             hash: hashSet,
+        },
+        Inspect {
+            toInspector: toInspectorSet,
         },
     ]
 
@@ -52,6 +58,11 @@ isEq = \xs, ys ->
 
 hashSet : hasher, Set k -> hasher where k implements Hash & Eq, hasher implements Hasher
 hashSet = \hasher, @Set inner -> Hash.hash hasher inner
+
+toInspectorSet : Set k -> Inspector f where k implements Inspect & Hash & Eq, f implements InspectFormatter
+toInspectorSet = \set ->
+    fmt <- Inspect.custom
+    Inspect.apply (Inspect.set set walk Inspect.toInspector) fmt
 
 ## Creates a new empty `Set`.
 ## ```
@@ -226,9 +237,10 @@ toList = \@Set dict ->
 ## ```
 fromList : List k -> Set k where k implements Hash & Eq
 fromList = \list ->
-    initial = @Set (Dict.withCapacity (List.len list))
-
-    List.walk list initial insert
+    list
+    |> List.map \k -> (k, {})
+    |> Dict.fromList
+    |> @Set
 
 ## Combine two `Set` collection by keeping the
 ## [union](https://en.wikipedia.org/wiki/Union_(set_theory))
@@ -335,6 +347,28 @@ walkUntil : Set k, state, (state, k -> [Continue state, Break state]) -> state w
 walkUntil = \@Set dict, state, step ->
     Dict.walkUntil dict state (\s, k, _ -> step s k)
 
+## Run the given function on each element in the `Set`, and return
+## a `Set` with just the elements for which the function returned `Bool.true`.
+## ```
+## expect Set.fromList [1,2,3,4,5]
+##     |> Set.keepIf \k -> k >= 3
+##     |> Bool.isEq (Set.fromList [3,4,5])
+## ```
+keepIf : Set k, (k -> Bool) -> Set k
+keepIf = \@Set dict, predicate ->
+    @Set (Dict.keepIf dict (\(k, _v) -> predicate k))
+
+## Run the given function on each element in the `Set`, and return
+## a `Set` with just the elements for which the function returned `Bool.false`.
+## ```
+## expect Set.fromList [1,2,3,4,5]
+##     |> Set.dropIf \k -> k >= 3
+##     |> Bool.isEq (Set.fromList [1,2])
+## ```
+dropIf : Set k, (k -> Bool) -> Set k
+dropIf = \@Set dict, predicate ->
+    @Set (Dict.dropIf dict (\(k, _v) -> predicate k))
+
 expect
     first =
         single "Keep Me"
@@ -434,3 +468,13 @@ expect
         |> insert orderOne
 
     wrapperOne == wrapperTwo
+
+expect
+    Set.fromList [1, 2, 3, 4, 5]
+    |> Set.keepIf \k -> k >= 3
+    |> Bool.isEq (Set.fromList [3, 4, 5])
+
+expect
+    Set.fromList [1, 2, 3, 4, 5]
+    |> Set.dropIf \k -> k >= 3
+    |> Bool.isEq (Set.fromList [1, 2])

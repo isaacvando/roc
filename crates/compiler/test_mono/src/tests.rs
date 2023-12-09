@@ -894,6 +894,37 @@ fn optional_when() {
 }
 
 #[mono_test]
+fn optional_field_with_binary_op() {
+    r#"
+        { bar ? 1 + 1 } = {}
+        bar
+    "#
+}
+
+#[mono_test]
+fn nested_optional_field_with_binary_op() {
+    r#"
+        when { x: ([{}], "foo") } is
+            { x: ([{ bar ? 1 + 1 }], _) } -> bar
+            _ -> 0
+    "#
+}
+
+#[mono_test]
+fn multiline_record_pattern() {
+    r#"
+        x = { a: 1, b: 2, c: 3 }
+        {
+            a,
+            b,
+            c,
+        } = x
+
+        a + b + c
+    "#
+}
+
+#[mono_test]
 fn nested_pattern_match() {
     r#"
     Maybe a : [Nothing, Just a]
@@ -3255,6 +3286,152 @@ fn non_nullable_unwrapped_instead_of_nullable_wrapped() {
                 A -> "A"
                 B -> "B"
                 C _ _ -> "C"
+        "#
+    )
+}
+
+#[mono_test]
+#[ignore = "Hits an unimplemented for abilities, not sure why..."]
+fn inspect_custom_type() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        HelloWorld := {} implements [Inspect { toInspector: myToInspector }]
+
+        myToInspector : HelloWorld -> Inspector f where f implements InspectFormatter
+        myToInspector = \@HellowWorld {} ->
+            fmt <- Inspect.custom
+            Inspect.apply (Inspect.str "Hello, World!\n") fmt
+
+        main =
+            Inspect.inspect (@HelloWorld {})
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_string() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main = Inspect.toStr "abc"
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_record() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main = Inspect.toStr {a: 7, b: 3dec}
+        "#
+    )
+}
+#[mono_test]
+fn inspect_derived_record_one_field_string() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main = Inspect.toStr {a: "foo"}
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_record_two_field_strings() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main = Inspect.toStr {a: "foo", b: "bar"}
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_nested_record_string() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main = Inspect.toStr {a: {b: "bar"}}
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_tag_one_field_string() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main =
+            x : [A Str]
+            x = A "foo"
+            Inspect.toStr x
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_tag_two_payloads_string() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main =
+            x : [A Str Str]
+            x = A "foo" "foo"
+            Inspect.toStr x
+        "#
+    )
+}
+
+#[mono_test]
+fn inspect_derived_list() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main = Inspect.toStr [1, 2, 3]
+        "#
+    )
+}
+
+#[mono_test(large_stack = "true")]
+fn inspect_derived_dict() {
+    indoc!(
+        r#"
+        app "test"
+            imports []
+            provides [main] to "./platform"
+
+        main =
+            Dict.fromList [("a", 1), ("b", 2)]
+            |> Inspect.toStr
         "#
     )
 }

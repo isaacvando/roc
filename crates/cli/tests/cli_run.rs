@@ -554,19 +554,20 @@ mod cli_run {
                 r#"
                 This expectation failed:
 
-                18│      expect x != x
-                                ^^^^^^
+                19│      expect words == []
+                                ^^^^^^^^^^^
 
                 When it failed, these variables had these values:
 
-                x : Num *
-                x = 42
+                words : List Str
+                words = ["this", "will", "for", "sure", "be", "a", "large", "string", "so", "when", "we", "split", "it", "it", "will", "use", "seamless", "slices", "which", "affect", "printing"]
 
-                [<ignored for tests> 19:9] 42
-                [<ignored for tests> 20:9] "Fjoer en ferdjer frieten oan dyn geve lea"
-                [<ignored for tests> 13:9] "abc"
-                [<ignored for tests> 13:9] 10
-                [<ignored for tests> 13:9] A (B C)
+                [<ignored for tests>:22] x = 42
+                [<ignored for tests>:23] "Fjoer en ferdjer frieten oan dyn geve lea" = "Fjoer en ferdjer frieten oan dyn geve lea"
+                [<ignored for tests>:24] "this is line 24" = "this is line 24"
+                [<ignored for tests>:13] x = "abc"
+                [<ignored for tests>:13] x = 10
+                [<ignored for tests>:13] x = (A (B C))
                 Program finished!
                 "#
             ),
@@ -875,7 +876,7 @@ mod cli_run {
                 This roc file can print it's own source code. The source is:
 
                 app "ingested-file"
-                    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.6.0/QOQW08n38nHHrVVkJNiPIjzjvbR3iMjXeFY5w1aT46w.tar.br" }
+                    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
                     imports [
                         pf.Stdout,
                         "ingested-file.roc" as ownCode : Str,
@@ -902,7 +903,7 @@ mod cli_run {
             &[],
             &[],
             &[],
-            "30256\n",
+            "30461\n",
             UseValgrind::No,
             TestCliCommands::Run,
         )
@@ -944,7 +945,7 @@ mod cli_run {
         test_roc_app_slim(
             "examples",
             "inspect-logging.roc",
-            r#"{people: [{firstName: "John", lastName: "Smith", age: 27, hasBeard: true, favoriteColor: Blue}, {firstName: "Debby", lastName: "Johnson", age: 47, hasBeard: false, favoriteColor: Green}, {firstName: "Jane", lastName: "Doe", age: 33, hasBeard: false, favoriteColor: (RGB (255, 255, 0))}], friends: [{2}, {2}, {0, 1}]}
+            r#"(@Community {friends: [{2}, {2}, {0, 1}], people: [(@Person {age: 27, favoriteColor: Blue, firstName: "John", hasBeard: Bool.true, lastName: "Smith"}), (@Person {age: 47, favoriteColor: Green, firstName: "Debby", hasBeard: Bool.false, lastName: "Johnson"}), (@Person {age: 33, favoriteColor: (RGB (255, 255, 0)), firstName: "Jane", hasBeard: Bool.false, lastName: "Doe"})]})
 "#,
             UseValgrind::Yes,
         )

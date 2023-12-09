@@ -741,7 +741,9 @@ pub fn constrain_expr(
         }
 
         Dbg {
-            loc_condition,
+            source_location: _,
+            source: _,
+            loc_message,
             loc_continuation,
             variable,
             symbol: _,
@@ -749,12 +751,12 @@ pub fn constrain_expr(
             let dbg_type = constraints.push_variable(*variable);
             let expected_dbg = constraints.push_expected_type(Expected::NoExpectation(dbg_type));
 
-            let cond_con = constrain_expr(
+            let message_con = constrain_expr(
                 types,
                 constraints,
                 env,
-                loc_condition.region,
-                &loc_condition.value,
+                loc_message.region,
+                &loc_message.value,
                 expected_dbg,
             );
 
@@ -767,7 +769,7 @@ pub fn constrain_expr(
                 expected,
             );
 
-            constraints.exists_many([*variable], [cond_con, continuation_con])
+            constraints.exists_many([*variable], [message_con, continuation_con])
         }
 
         If {

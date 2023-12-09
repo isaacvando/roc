@@ -57,6 +57,14 @@ impl AssemblyBackendMode {
             AssemblyBackendMode::Repl => true,
         }
     }
+
+    fn generate_roc_dbg(self) -> bool {
+        match self {
+            AssemblyBackendMode::Binary => false,
+            AssemblyBackendMode::Test => true,
+            AssemblyBackendMode::Repl => true,
+        }
+    }
 }
 
 pub struct Env<'a> {
@@ -1755,6 +1763,21 @@ trait Backend<'a> {
             LowLevel::NumIsMultipleOf => {
                 let int_width = arg_layouts[0].try_int_width().unwrap();
                 let intrinsic = bitcode::NUM_IS_MULTIPLE_OF[int_width].to_string();
+                self.build_fn_call(sym, intrinsic, args, arg_layouts, ret_layout);
+            }
+            LowLevel::NumCountLeadingZeroBits => {
+                let int_width = arg_layouts[0].try_int_width().unwrap();
+                let intrinsic = bitcode::NUM_COUNT_LEADING_ZERO_BITS[int_width].to_string();
+                self.build_fn_call(sym, intrinsic, args, arg_layouts, ret_layout);
+            }
+            LowLevel::NumCountTrailingZeroBits => {
+                let int_width = arg_layouts[0].try_int_width().unwrap();
+                let intrinsic = bitcode::NUM_COUNT_TRAILING_ZERO_BITS[int_width].to_string();
+                self.build_fn_call(sym, intrinsic, args, arg_layouts, ret_layout);
+            }
+            LowLevel::NumCountOneBits => {
+                let int_width = arg_layouts[0].try_int_width().unwrap();
+                let intrinsic = bitcode::NUM_COUNT_ONE_BITS[int_width].to_string();
                 self.build_fn_call(sym, intrinsic, args, arg_layouts, ret_layout);
             }
             LowLevel::ListSublist => {

@@ -150,16 +150,6 @@ pub(crate) fn notify_parent_expect(env: &Env, shared_memory: &SharedMemoryPointe
     );
 }
 
-pub(crate) fn notify_parent_dbg(env: &Env, shared_memory: &SharedMemoryPointer) {
-    let func = env.module.get_function(bitcode::NOTIFY_PARENT_DBG).unwrap();
-
-    env.builder.new_build_call(
-        func,
-        &[shared_memory.0.into()],
-        "call_expect_failed_finalize",
-    );
-}
-
 // Shape of expect frame:
 //
 //     ===
@@ -478,6 +468,8 @@ fn build_clone_tag<'a, 'ctx>(
 
             let subprogram = env.new_subprogram(&fn_name);
             function_value.set_subprogram(subprogram);
+
+            debug_info_init!(env, function_value);
 
             env.dibuilder.finalize();
 

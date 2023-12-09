@@ -18,7 +18,6 @@
     <li><a href="#tests-and-expectations">Tests and Expectations</a></li>
     <li><a href="#modules">Modules</a></li>
     <li><a href="#tasks">Tasks</a></li>
-    <li><a href="#abilities">Abilities</a></li>
     <li><a href="#appendix-advanced-concepts">Advanced Concepts</a></li>
     <li><a href="#reserved-keywords">Reserved Keywords</a></li>
     <li><a href="#operator-desugaring-table">Operator Desugaring Table</a></li>
@@ -165,7 +164,7 @@ Make a file named `main.roc` and put this in it:
 
 ```roc
 app "hello"
-    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br" }
+    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
     imports [pf.Stdout]
     provides [main] to pf
 
@@ -510,7 +509,7 @@ outside a record field. Optionality is a concept that exists only in record
 fields, and it's intended for the use case of config records like this. The
 ergonomics of destructuring mean this wouldn't be a good fit for data modeling, consider using a `Result` type instead.
 
-## [Tags](#tags) {#tags}
+## [Tags &amp; Pattern Matching](#tags) {#tags}
 
 Sometimes we want to represent that something can have one of several values. For example:
 
@@ -655,11 +654,14 @@ when myList is
     [Ok a, ..] -> 6 # it starts with an Ok containing a payload named `a`
     [.., Foo] -> 7 # it ends with a Foo tag
     [A, B, .., C, D] -> 8 # it has certain elements at the beginning and end
+    [head, .. as tail] -> 9 # destructure a list into a first element (head) and the rest (tail)
 ```
 
 This can be both more concise and more efficient (at runtime) than calling [`List.get`](https://www.roc-lang.org/builtins/List#get) multiple times, since each call to `get` requires a separate conditional to handle the different `Result`s they return.
 
 > **Note:** Each list pattern can only have one `..`, which is known as the "rest pattern" because it's where the _rest_ of the list goes.
+
+See the [Pattern Matching example](https://www.roc-lang.org/examples/PatternMatching/README.html) which shows different ways to do pattern matching in Roc using tags, strings, and numbers.
 
 ## [Booleans](#booleans) {#booleans}
 
@@ -1410,19 +1412,19 @@ Let's take a closer look at the part of `main.roc` above the `main` def:
 
 ```roc
 app "hello"
-    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br" }
+    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
     imports [pf.Stdout]
     provides [main] to pf
 ```
 
 This is known as a _module header_. Every `.roc` file is a _module_, and there are different types of modules. We know this particular one is an _application module_ because it begins with the `app` keyword.
 
-The line `app "hello"` states that this module defines a Roc application, and that building this application should produce an executable named `hello`. This means when you run `roc dev`, the Roc compiler will build an executable named `hello` (or `hello.exe` on Windows) and run it. You can also build the executable without running it by running `roc build`.
+The line `app "hello"` shows that this module is a Roc application. The "hello" after the `app` keyword will be removed soon and is no longer used. If the file is named hello.roc, building this application should produce an executable named `hello`. This means when you run `roc dev`, the Roc compiler will build an executable named `hello` (or `hello.exe` on Windows) and run it. You can also build the executable without running it by running `roc build`.
 
 The remaining lines all involve the [platform](https://github.com/roc-lang/roc/wiki/Roc-concepts-explained#platform) this application is built on:
 
 ```roc
-packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br" }
+packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
     imports [pf.Stdout]
     provides [main] to pf
 ```
@@ -1491,6 +1493,19 @@ See [Html Interface](https://github.com/roc-lang/roc/blob/main/examples/virtual-
 
 See [Platform Switching Rust](https://github.com/roc-lang/roc/blob/main/examples/platform-switching/rust-platform/main.roc) for an example.
 
+### [Importing Files](#importing-files) {#importing-files}
+
+You can import files directly into your module as a `Str` or a `List U8` at compile time. This is can be useful for when working with data you would like to keep in a separate file, e.g. JSON or YAML configuration.
+
+```roc
+imports [
+    "some-file" as someStr : Str,
+    "some-file" as someBytes : List U8,
+]
+```
+
+See the [Ingest Files Example](https://www.roc-lang.org/examples/IngestFiles/README.html) for a demonstration on using this feature.
+
 ## [Tasks](#tasks) {#tasks}
 
 Tasks are technically not part of the Roc language, but they're very common in platforms. Let's continue using the [basic-cli](https://github.com/roc-lang/basic-cli) platform we've been using up to this point as an example!
@@ -1508,7 +1523,7 @@ Let's start with a basic "Hello World" program.
 
 ```roc
 app "cli-tutorial"
-    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br" }
+    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
     imports [pf.Stdout]
     provides [main] to pf
 
@@ -1528,26 +1543,34 @@ When we set `main` to be a `Task`, the task will get run when we run our program
 
 `Task` has two type parameters: the type of value it produces when it finishes running, and any errors that might happen when running it. `Stdout.line` has the type `Task {} *` because it doesn't produce any values when it finishes (hence the `{}`) and there aren't any errors that can happen when it runs (hence the `*`).
 
-In contrast, `Stdin.line` produces a `Str` when it finishes reading from [standard input](<https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)>). That `Str` is reflected in its type:
+In contrast, when `Stdin.line` finishes reading a line from [standard input](<https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)>), it produces either a `Str` or else `End` if standard input reached its end (which can happen if the user types Ctrl+D on UNIX systems or Ctrl+Z on Windows). Those two possibilities are reflected in its type:
 
 ```roc
-Stdin.line : Task Str *
+Stdin.line : Task [Input Str, End] *
 ```
 
-Let's change `main` to read a line from `stdin`, and then print it back out again:
+Once this task runs, we'll end up with the [tag union](https://www.roc-lang.org/tutorial#tags-with-payloads) `[Input Str, End]`. Then we can check whether we got an `End` or some actual `Input`, and print out a message accordingly.
+
+### [Printing Roc values with `Inspect.toStr`](#inspect) {#inspect}
+
+Let's change `main` to read a line from `stdin`, and then print what we got:
 
 ```roc
 app "cli-tutorial"
-    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br" }
+    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
     imports [pf.Stdout, pf.Stdin, pf.Task]
     provides [main] to pf
 
 main =
-    Task.await Stdin.line \text ->
-        Stdout.line "You just entered: \(text)"
+    Task.await Stdin.line \input ->
+        Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
-If you run this program, at first it won't do anything. It's waiting for you to type something in and press Enter! Once you do, it should print back out what you entered.
+The [`Inspect.toStr`](https://www.roc-lang.org/builtins/Inspect#toStr) function returns a `Str` representation of any Roc value. It's useful for things like debugging and logging (although [`dbg`](https://www.roc-lang.org/tutorial#debugging) is often nicer for debugging), but its output is almost never something that should be shown to end users! In this case we're just using it for our own learning, but in a real program we'd run a `when` on `answer` and do something different depending on whether we got an `End` or `Input` tag.
+
+If you run this program, at first it won't do anything. It's waiting for you to type something in and press Enter! Once you do, it should print back out what you entered—either `Your input was: End` or `Your input was: Input <whatever you entered>` depending on whether you pressed Enter or the key combination to close stdin (namely Ctrl+D on UNIX or Ctrl+Z on Windows). Try doing it both ways to watch the output change!
+
+### [Chaining tasks with `Task.await`](#await) {#await}
 
 The `Task.await` function combines two tasks into one bigger `Task` which first runs one of the given tasks and then the other. In this case, it's combining a `Stdin.line` task with a `Stdout.line` task into one bigger `Task`, and then setting `main` to be that bigger task.
 
@@ -1557,11 +1580,11 @@ The type of `Task.await` is:
 Task.await : Task a err, (a -> Task b err) -> Task b err
 ```
 
-The second argument to `Task.await` is a "callback function" which runs after the first task completes. This callback function receives the output of that first task, and then returns the second task. This means the second task can make use of output from the first task, like we did in our `\text -> ...` callback function here:
+The second argument to `Task.await` is a "callback function" which runs after the first task completes. This callback function receives the output of that first task, and then returns the second task. This means the second task can make use of output from the first task, like we did in our `\input -> ...` callback function here:
 
 ```roc
-\text ->
-    Stdout.line "You just entered: \(text)"
+\input ->
+    Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 Notice that, just like before, we're still building `main` from a single `Task`. This is how we'll always do it! We'll keep building up bigger and bigger `Task`s out of smaller tasks, and then setting `main` to be that one big `Task`.
@@ -1571,22 +1594,22 @@ For example, we can print a prompt before we pause to read from `stdin`, so it n
 ```roc
 main =
     Task.await (Stdout.line "Type something press Enter:") \_ ->
-        Task.await Stdin.line \text ->
-            Stdout.line "You just entered: \(text)"
+        Task.await Stdin.line \input ->
+            Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 This works, but we can make it a little nicer to read. Let's change it to the following:
 
 ```roc
 app "cli-tutorial"
-    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br" }
+    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br" }
     imports [pf.Stdout, pf.Stdin, pf.Task.{ await }]
     provides [main] to pf
 
 main =
     await (Stdout.line "Type something press Enter:") \_ ->
-        await Stdin.line \text ->
-            Stdout.line "You just entered: \(text)"
+        await Stdin.line \input ->
+            Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 Here we've changed how we're importing the `Task` module. Before it was `pf.Task` and now it's `pf.Task.{ await }`. The difference is that we're importing `await` in an _unqualified_ way, meaning that whenever we write `await` in this module, it will refer to `Task.await`. Now we no longer need to write `Task.` every time we want to use `await`.
@@ -1598,9 +1621,9 @@ Speaking of calling `await` repeatedly, if we keep calling it more and more on t
 ```roc
 main =
     _ <- await (Stdout.line "Type something press Enter:")
-    text <- await Stdin.line
+    input <- await Stdin.line
 
-    Stdout.line "You just entered: \(text)"
+    Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 ## [Backpassing](#backpassing) {#backpassing}
@@ -1610,16 +1633,16 @@ This `<-` syntax is called _backpassing_. The `<-` is a way to define an anonymo
 Here, we're using backpassing to define two anonymous functions. Here's one of them:
 
 ```roc
-text <-
+input <-
 
-Stdout.line "You just entered: \(text)"
+Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 It may not look like it, but this code is defining an anonymous function! You might remember it as the anonymous function we previously defined like this:
 
 ```roc
-\text ->
-    Stdout.line "You just entered: \(text)"
+\input ->
+    Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 These two anonymous functions are the same, just defined using different syntax.
@@ -1631,25 +1654,25 @@ Let's look at these two complete expressions side by side. They are both saying 
 Here's the original:
 
 ```roc
-await Stdin.line \text ->
-    Stdout.line "You just entered: \(text)"
+await Stdin.line \input ->
+    Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 And here's the equivalent expression with backpassing syntax:
 
 ```roc
-text <- await Stdin.line
+input <- await Stdin.line
 
-Stdout.line "You just entered: \(text)"
+Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 Here's the other function we're defining with backpassing:
 
 ```roc
 _ <-
-text <- await Stdin.line
+input <- await Stdin.line
 
-Stdout.line "You just entered: \(text)"
+Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 We could also have written that function this way if we preferred:
@@ -1657,37 +1680,43 @@ We could also have written that function this way if we preferred:
 ```roc
 _ <-
 
-await Stdin.line \text ->
-    Stdout.line "You just entered: \(text)"
+await Stdin.line \input ->
+    Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
-This is using a mix of a backpassing function `_ <-` and a normal function `\text ->`, which is totally allowed! Since backpassing is nothing more than syntax sugar for defining a function and passing back as an argument to another function, there's no reason we can't mix and match if we like.
+This is using a mix of a backpassing function `_ <-` and a normal function `\input ->`, which is totally allowed! Since backpassing is nothing more than syntax sugar for defining a function and passing back as an argument to another function, there's no reason we can't mix and match if we like.
 
 That said, the typical style in which this `task` would be written in Roc is using backpassing for all the `await` calls, like we had above:
 
 ```roc
 main =
     _ <- await (Stdout.line "Type something press Enter:")
-    text <- await Stdin.line
+    input <- await Stdin.line
 
-    Stdout.line "You just entered: \(text)"
+    Stdout.line "Your input was: \(Inspect.toStr input)"
 ```
 
 This way, it reads like a series of instructions:
 
 1.  First, run the `Stdout.line` task and await its completion. Ignore its output (hence the underscore in `_ <-`)
-2.  Next, run the `Stdin.line` task and await its completion. Name its output `text`.
-3.  Finally, run the `Stdout.line` task again, using the `text` value we got from the `Stdin.line` effect.
+2.  Next, run the `Stdin.line` task and await its completion. Name its output `input`.
+3.  Finally, run the `Stdout.line` task again, using the `input` value we got from the `Stdin.line` effect.
 
 Some important things to note about backpassing and `await`:
 
 - `await` is not a language keyword in Roc! It's referring to the `Task.await` function, which we imported unqualified by writing `Task.{ await }` in our module imports. (That said, it is playing a similar role here to the `await` keyword in languages that have `async`/`await` keywords, even though in this case it's a function instead of a special keyword.)
 - Backpassing syntax does not need to be used with `await` in particular. It can be used with any function.
-- Roc's compiler treats functions defined with backpassing exactly the same way as functions defined the other way. The only difference between `\text ->` and `text <-` is how they look, so feel free to use whichever looks nicer to you!
+- Roc's compiler treats functions defined with backpassing exactly the same way as functions defined the other way. The only difference between `\input ->` and `input <-` is how they look, so feel free to use whichever looks nicer to you!
 
-## [Abilities](#abilities) {#abilities}
+See the [Task & Error Handling example](https://www.roc-lang.org/examples/Tasks/README.html) for a more detailed explanation of how to use tasks to help with error handling in a larger program.
 
-\[This part of the tutorial has not been written yet. Coming soon!\]
+## Examples
+
+Well done on making it this far! 
+
+We've covered all of the basic syntax and features of Roc in this Tutorial. You should now have a good foundation and be ready to start writing your own applications.
+
+You can continue reading through more advanced topics below, or perhaps checkout some of the [Examples](/examples) for more a detailed exploration of ways to do various things.
 
 ## [Appendix: Advanced Concepts](#appendix-advanced-concepts) {#appendix-advanced-concepts}
 
@@ -1992,9 +2021,35 @@ For this reason, any time you see a function that only runs a `when` on its only
 >
 > Also just like with records, you can use this to compose tag union type aliases. For example, you can write `NetworkError : [Timeout, Disconnected]` and then `Problem : [InvalidInput, UnknownFormat]NetworkError`
 
-### [Phantom Types](#phantom-types) {#phantom-types}
+### [Record Builder](#record-builder) {#record-builder}
 
-\[This part of the tutorial has not been written yet. Coming soon!\]
+The record builder syntax sugar is a useful feature which leverages the functional programming concept of [applicative functors](https://lucamug.medium.com/functors-applicatives-and-monads-in-pictures-784c2b5786f7), to provide a flexible method for constructing complex types.
+
+The record builder syntax sugar helps to build up a record by applying a series of functions to it. 
+
+For example, let's say we write a record-builder as follows:
+
+```roc
+{ aliceID, bobID, trudyID } = 
+    initIDCount {
+        aliceID: <- incID,
+        bobID: <- incID,
+        trudyID: <- incID,
+    } |> extractState
+```
+
+The above desguars to the following.
+
+```roc
+{ aliceID, bobID, trudyID } =
+    initIDCount (\aID -> \bID -> \cID -> { aliceID: aID, bobID: bID, trudyID: cID })
+    |> incID
+    |> incID
+    |> incID
+    |> extractState
+```
+
+See the [Record Builder Example](https://www.roc-lang.org/examples/RecordBuilder/README.html) for an explanation of how to use this feature.
 
 ### [Reserved Keywords](#reserved-keywords) {#reserved-keywords}
 
