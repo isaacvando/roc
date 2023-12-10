@@ -114,7 +114,7 @@ pub(crate) fn decoder(
         &mut index_vars,
         &mut state_fields,
         &mut state_field_vars,
-    );
+    )
 }
 
 // TODO: this could be discriminant [['O','n','e'],...] instead. Not sure how to construct the list though
