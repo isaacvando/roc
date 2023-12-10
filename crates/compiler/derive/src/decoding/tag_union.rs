@@ -1,13 +1,23 @@
-use roc_can::expr::{AnnotatedMark, ClosureData, Expr, Recursive, WhenBranch, WhenBranchPattern};
-use roc_can::pattern::{DestructType, Pattern, RecordDestruct};
+use std::collections::HashMap;
 
+use roc_can::def::Def;
+use roc_can::expr::{
+    AnnotatedMark, ClosureData, Expr, Field, Recursive, WhenBranch, WhenBranchPattern,
+};
+use roc_can::pattern::{DestructType, Pattern, RecordDestruct};
+use roc_collections::SendMap;
+use roc_types::types::RecordField;
+
+use crate::synth_var;
 use crate::util::{Env, ExtensionKind};
 use roc_module::called_via::CalledVia;
-use roc_module::ident::TagName;
+use roc_module::ident::{Lowercase, TagName};
 use roc_module::symbol::Symbol;
 use roc_region::all::Loc;
 use roc_region::all::Region;
-use roc_types::subs::{ExhaustiveMark, RedundantMark, Variable};
+use roc_types::subs::{
+    Content, ExhaustiveMark, FlatType, RecordFields, RedundantMark, TagExt, UnionTags, Variable,
+};
 
 // We want to generate an implementation like this;
 
@@ -89,19 +99,31 @@ pub(crate) fn decoder(
     _def_symbol: Symbol,
     tags: Vec<(TagName, u16)>,
 ) -> (Expr, Variable) {
-    // name_decoder(env, tags)
     let var1 = env.subs.fresh_unnamed_flex_var();
     let var2 = env.subs.fresh_unnamed_flex_var();
     let finalizer_var = env.subs.fresh_unnamed_flex_var();
 
-    finalizer(env, "Foo".into(), vec![var1, var2], finalizer_var)
+    // finalizer(env, "Foo".into(), vec![var1, var2], finalizer_var)
+    // name_decoder(env, tags, var1)
+    let mut index_vars = Vec::with_capacity(3 as _);
+    let mut state_fields = Vec::with_capacity(3 as _);
+    let mut state_field_vars = Vec::with_capacity(3 as _);
+    initial_state(
+        env,
+        3,
+        &mut index_vars,
+        &mut state_fields,
+        &mut state_field_vars,
+    );
 }
 
-//     nameDecoder =
-//         ["Zero", "One", "Two"]
-//         |> List.map Str.toUtf8
-//         |> discriminant
-fn name_decoder(env: &mut Env, tags: Vec<(TagName, u16)>) -> (Expr, Variable) {
+// TODO: this could be discriminant [['O','n','e'],...] instead. Not sure how to construct the list though
+// discriminant (List.map Str.toUtf8 ["One", "Two", "Three"])
+fn name_decoder(
+    env: &mut Env,
+    tags: Vec<(TagName, u16)>,
+    name_decoder_var: Variable,
+) -> (Expr, Variable) {
     let list_of_variants_body = tags
         .into_iter()
         .map(|(name, _)| {
@@ -110,59 +132,55 @@ fn name_decoder(env: &mut Env, tags: Vec<(TagName, u16)>) -> (Expr, Variable) {
         })
         .collect();
 
+    let list_of_variants_var = env.subs.fresh_unnamed_flex_var();
     let list_of_variants = Expr::List {
         elem_var: Variable::STR,
         loc_elems: list_of_variants_body,
     };
 
+    let list_map_return_var = env.subs.fresh_unnamed_flex_var();
+    let list_map_closure_var = env.subs.fresh_unnamed_flex_var();
+    let list_map_function_var = env.subs.fresh_unnamed_flex_var();
     let list_map_fn = Box::new((
-        env.subs.fresh_unnamed_flex_var(),
-        Loc::at_zero(Expr::Var(
-            Symbol::LIST_MAP,
-            env.subs.fresh_unnamed_flex_var(),
-        )),
-        env.subs.fresh_unnamed_flex_var(),
-        env.subs.fresh_unnamed_flex_var(),
+        list_map_function_var,
+        Loc::at_zero(Expr::Var(Symbol::LIST_MAP, list_map_function_var)),
+        list_map_closure_var,
+        list_map_return_var,
     ));
 
+    let str_to_utf8_var = env.subs.fresh_unnamed_flex_var();
     let list_map_to_utf8_call = Expr::Call(
         list_map_fn,
         vec![
             (
-                env.subs.fresh_unnamed_flex_var(),
-                Loc::at_zero(Expr::Var(
-                    Symbol::STR_TO_UTF8,
-                    env.subs.fresh_unnamed_flex_var(),
-                )),
+                str_to_utf8_var,
+                Loc::at_zero(Expr::Var(Symbol::STR_TO_UTF8, str_to_utf8_var)),
             ),
-            (
-                env.subs.fresh_unnamed_flex_var(),
-                Loc::at_zero(list_of_variants),
-            ),
+            (list_of_variants_var, Loc::at_zero(list_of_variants)),
         ],
         CalledVia::Space,
     );
 
+    let discriminant_function_var = env.subs.fresh_unnamed_flex_var();
+    let discriminant_closure_var = env.subs.fresh_unnamed_flex_var();
+    let discriminant_return_var = env.subs.fresh_unnamed_flex_var();
     let discriminant_fn = Box::new((
-        env.subs.fresh_unnamed_flex_var(),
+        discriminant_function_var,
         Loc::at_zero(Expr::Var(
             Symbol::DECODE_DISCRIMINANT,
-            env.subs.fresh_unnamed_flex_var(),
+            discriminant_function_var,
         )),
-        env.subs.fresh_unnamed_flex_var(),
-        env.subs.fresh_unnamed_flex_var(),
+        discriminant_closure_var,
+        discriminant_return_var,
     ));
 
     let discriminant_call = Expr::Call(
         discriminant_fn,
-        vec![(
-            env.subs.fresh_unnamed_flex_var(),
-            Loc::at_zero(list_map_to_utf8_call),
-        )],
+        vec![(list_map_return_var, Loc::at_zero(list_map_to_utf8_call))],
         CalledVia::Space,
     );
 
-    (discriminant_call, env.subs.fresh_unnamed_flex_var())
+    (discriminant_call, name_decoder_var)
 }
 
 // (
@@ -313,4 +331,84 @@ fn finalizer(
     });
 
     (closure, finalizer_var)
+}
+
+// state = { e0: Err TooShort, e1: Err TooShort }
+fn initial_state(
+    env: &mut Env<'_>,
+    arity: u32,
+    index_vars: &mut Vec<Variable>,
+    state_fields: &mut Vec<Lowercase>,
+    state_field_vars: &mut Vec<Variable>,
+) -> (Expr, Variable) {
+    let mut initial_state_fields = SendMap::default();
+
+    for i in 0..arity {
+        let subs = &mut env.subs;
+        let index_var = subs.fresh_unnamed_flex_var();
+
+        index_vars.push(index_var);
+
+        let state_field = Lowercase::from(format!("e{i}"));
+        state_fields.push(state_field.clone());
+
+        let no_index_label = "TooShort";
+        let union_tags = UnionTags::tag_without_arguments(subs, no_index_label.into());
+        let no_index_var = synth_var(
+            subs,
+            Content::Structure(FlatType::TagUnion(
+                union_tags,
+                TagExt::Any(Variable::EMPTY_TAG_UNION),
+            )),
+        );
+        let no_index = Expr::Tag {
+            tag_union_var: no_index_var,
+            ext_var: Variable::EMPTY_TAG_UNION,
+            name: no_index_label.into(),
+            arguments: Vec::new(),
+        };
+        let err_label = "Err";
+        let union_tags = UnionTags::for_result(subs, index_var, no_index_var);
+        let result_var = synth_var(
+            subs,
+            Content::Structure(FlatType::TagUnion(
+                union_tags,
+                TagExt::Any(Variable::EMPTY_TAG_UNION),
+            )),
+        );
+        let index_expr = Expr::Tag {
+            tag_union_var: result_var,
+            ext_var: env.new_ext_var(ExtensionKind::TagUnion),
+            name: err_label.into(),
+            arguments: vec![(no_index_var, Loc::at_zero(no_index))],
+        };
+        state_field_vars.push(result_var);
+        let index = Field {
+            var: result_var,
+            region: Region::zero(),
+            loc_expr: Box::new(Loc::at_zero(index_expr)),
+        };
+
+        initial_state_fields.insert(state_field, index);
+    }
+
+    let subs = &mut env.subs;
+    let record_index_iter = state_fields
+        .iter()
+        .zip(state_field_vars.iter())
+        .map(|(index_name, &var)| (index_name.clone(), RecordField::Required(var)));
+    let flat_type = FlatType::Record(
+        RecordFields::insert_into_subs(subs, record_index_iter),
+        Variable::EMPTY_RECORD,
+    );
+
+    let state_record_var = synth_var(subs, Content::Structure(flat_type));
+
+    (
+        Expr::Record {
+            record_var: state_record_var,
+            fields: initial_state_fields,
+        },
+        state_record_var,
+    )
 }
